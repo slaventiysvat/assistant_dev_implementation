@@ -65,4 +65,3 @@ class Name(Field):
             raise ValueError("Ім'я може містити тільки літери, пробіли, дефіси та апострофи")
         
         return value.title()  # Приводимо до формату Title Case
-
