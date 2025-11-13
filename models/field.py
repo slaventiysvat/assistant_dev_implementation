@@ -64,7 +64,16 @@ class Name(Field):
         if not re.match(r"^[a-zA-Zа-яА-ЯіІїЇєЄ'\s\-]+$", value):
             raise ValueError("Ім'я може містити тільки літери, пробіли, дефіси та апострофи")
         
-        return value.title()  # Приводимо до формату Title Case
+        # Приводимо до формату Title Case, але зберігаємо послідовності великих літер
+        words = value.split()
+        formatted_words = []
+        for word in words:
+            # Якщо слово повністю складається з великих літер (абревіатура), залишаємо як є
+            if word.isupper() and len(word) > 1:
+                formatted_words.append(word)
+            else:
+                formatted_words.append(word.capitalize())
+        return ' '.join(formatted_words)
 
 class Phone(Field):
     """Клас для валідації телефонних номерів"""

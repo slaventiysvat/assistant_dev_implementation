@@ -1,0 +1,32 @@
+{
+  "тест користувач": {
+    "name": "Тест Користувач",
+    "phones": [
+      "+380501234567"
+    ],
+    "emails": [],
+    "email": null,
+    "birthday": null,
+    "address": null
+  },
+  "іван тест": {
+    "name": "Іван Тест",
+    "phones": [
+      "+380501234567"
+    ],
+    "emails": [],
+    "email": null,
+    "birthday": null,
+    "address": null
+  },
+  "петро тест": {
+    "name": "Петро Тест",
+    "phones": [
+      "+380507654321"
+    ],
+    "emails": [],
+    "email": null,
+    "birthday": null,
+    "address": null
+  }
+}

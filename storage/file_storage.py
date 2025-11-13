@@ -50,7 +50,7 @@ class FileStorage:
         
         return self.data_dir / filename
 
-    def save_data(self, filename: str, data: Any) -> None:
+    def save_data(self, filename: str, data: Any) -> bool:
         """
         Зберігає дані у файл JSON
         
@@ -58,8 +58,8 @@ class FileStorage:
             filename (str): Ім'я файлу
             data (Any): Дані для збереження
             
-        Raises:
-            Exception: Якщо не вдалося зберегти дані
+        Returns:
+            bool: True якщо збереження успішне, False інакше
         """
         file_path = self.get_file_path(filename)
         
@@ -75,6 +75,8 @@ class FileStorage:
             # Зберігаємо дані з красивим форматуванням
             with open(file_path, 'w', encoding='utf-8') as file:
                 json.dump(data, file, ensure_ascii=False, indent=2)
+            
+            return True  # Успішне збереження
                 
         except Exception as e:
             # Відновлюємо з резервної копії, якщо можливо
@@ -85,7 +87,7 @@ class FileStorage:
                 except Exception:
                     pass
             
-            raise Exception(f"Помилка збереження даних у файл {filename}: {e}")
+            return False  # Помилка збереження
 
     def load_data(self, filename: str) -> Any:
         """
@@ -104,7 +106,7 @@ class FileStorage:
         file_path = self.get_file_path(filename)
         
         if not file_path.exists():
-            raise FileNotFoundError(f"Файл {filename} не знайдено")
+            return {}  # Повертаємо порожній словник для неіснуючих файлів
         
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
@@ -201,8 +203,8 @@ class FileStorage:
             json_files = []
             for file_path in self.data_dir.glob("*.json"):
                 if not file_path.name.endswith('.backup'):
-                    # Видаляємо розширення .json з імені
-                    filename = file_path.stem
+                    # Зберігаємо повне ім'я з розширенням .json
+                    filename = file_path.name
                     json_files.append(filename)
             
             return sorted(json_files)
@@ -259,6 +261,81 @@ class FileStorage:
         except Exception as e:
             print(f"Помилка очищення всіх даних: {e}")
             return False
+
+    def create_backup(self, filename: str) -> str:
+        """
+        Створює резервну копію файлу
+        
+        Args:
+            filename (str): Ім'я файлу для резервного копіювання
+            
+        Returns:
+            str: Шлях до створеного backup файлу
+        """
+        import datetime
+        
+        # Завантажуємо дані з оригінального файлу
+        try:
+            data = self.load_data(filename)
+        except Exception:
+            return ""
+        
+        # Створюємо унікальне ім'я backup файлу з timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"{filename}_backup_{timestamp}.json"
+        backup_path = self.data_dir / backup_filename
+        
+        # Зберігаємо backup
+        try:
+            with open(backup_path, 'w', encoding='utf-8') as file:
+                json.dump(data, file, ensure_ascii=False, indent=2)
+            return str(backup_path)
+        except Exception:
+            return ""
+
+    def restore_backup(self, filename: str, backup_file: str) -> bool:
+        """
+        Відновлює файл з резервної копії
+        
+        Args:
+            filename (str): Ім'я файлу для відновлення
+            backup_file (str): Шлях до backup файлу
+            
+        Returns:
+            bool: True якщо відновлення успішне
+        """
+        try:
+            # Завантажуємо дані з backup
+            with open(backup_file, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+            
+            # Зберігаємо в оригінальний файл
+            return self.save_data(filename, data)
+        except Exception:
+            return False
+
+    def list_backups(self, filename: str) -> list:
+        """
+        Повертає список backup файлів для заданого файлу
+        
+        Args:
+            filename (str): Ім'я файлу для пошуку backup
+            
+        Returns:
+            list: Список шляхів до backup файлів
+        """
+        try:
+            backup_pattern = f"{filename}_backup_*.json"
+            backup_files = []
+            
+            # Шукаємо файли що відповідають паттерну
+            for file_path in self.data_dir.glob(backup_pattern):
+                if file_path.is_file():
+                    backup_files.append(str(file_path))
+            
+            return sorted(backup_files, reverse=True)  # Новіші backup першими
+        except Exception:
+            return []
 
     def __str__(self) -> str:
         """Повертає рядкове представлення сховища"""

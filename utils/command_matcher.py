@@ -29,18 +29,20 @@ class CommandMatcher:
                     r'створити\s+контакт',
                     r'add\s+contact',
                     r'create\s+contact'
-                ]
+                ],
+                'description': 'Додати новий контакт',
+                'examples': ['додай контакт', 'новий контакт', 'створити контакт']
             },
             'search_contact': {
-                'keywords': ['знайти', 'пошук', 'шукати', 'найти', 'search', 'find', 'контакт'],
+                'keywords': ['знайти', 'знайди', 'пошук', 'шукати', 'найти', 'search', 'find', 'контакт'],
                 'patterns': [
-                    r'знайти\s+контакт',
+                    r'знайт[иі]\s+контакт',
+                    r'знайд[иі]\s+контакт',
                     r'пошук\s+контакт',
                     r'шукати\s+контакт',
+                    r'найти\s+контакт',
                     r'search\s+contact',
-                    r'find\s+contact',
-                    r'знайти\s+\w+',
-                    r'шукати\s+\w+'
+                    r'find\s+contact'
                 ]
             },
             'show_contacts': {
@@ -84,13 +86,16 @@ class CommandMatcher:
             
             # Нотатки
             'add_note': {
-                'keywords': ['додати', 'створити', 'нова', 'нотатка', 'замітка', 'add', 'create', 'note'],
+                'keywords': ['додати', 'додай', 'створити', 'створи', 'нова', 'нове', 'нотатка', 'замітка', 'add', 'create', 'note'],
                 'patterns': [
-                    r'додати\s+нотатку',
-                    r'створити\s+нотатку',
+                    r'додат[иі]\s+нотатку',
+                    r'додай\s+нотатку',
+                    r'створит[иі]\s+нотатку',
+                    r'створи\s+(нову\s+)?нотатку',
                     r'нова\s+нотатка',
+                    r'нове\s+нотатка',
                     r'add\s+note',
-                    r'create\s+note'
+                    r'create\s+(new\s+)?note'
                 ]
             },
             'search_notes': {
@@ -209,6 +214,20 @@ class CommandMatcher:
             'quit': 'exit'
         }
 
+        # Автоматично заповнюємо description та examples для всіх команд
+        for cmd_name, cmd_config in self.command_patterns.items():
+            if 'description' not in cmd_config:
+                cmd_config['description'] = self.get_command_description(cmd_name)
+            if 'examples' not in cmd_config:
+                cmd_config['examples'] = self.get_command_examples(cmd_name)
+        
+        # Словник команд для тестів (повний)
+        self.commands = {cmd: {
+            "patterns": config["patterns"],
+            "description": config["description"],
+            "examples": config["examples"]
+        } for cmd, config in self.command_patterns.items()}
+
     def find_best_command(self, user_input: str) -> Tuple[Optional[str], float]:
         """
         Знаходить найкращу відповідність команди для введеного тексту
@@ -222,7 +241,8 @@ class CommandMatcher:
         if not user_input or not user_input.strip():
             return None, 0.0
         
-        user_input = user_input.lower().strip()
+        # Нормалізуємо введений текст
+        user_input = self._normalize_text(user_input)
         
         # 1. Точний збіг з псевдонімами
         if user_input in self.command_aliases:
@@ -237,17 +257,24 @@ class CommandMatcher:
                 if re.search(pattern, user_input, re.IGNORECASE):
                     return command, 0.9
         
-        # 3. Пошук за ключовими словами
+        # 3. Пошук за ключовими словами (покращена логіка)
         for command, config in self.command_patterns.items():
             keyword_matches = 0
-            total_keywords = len(config['keywords'])
+            important_keywords = 0
             
             for keyword in config['keywords']:
                 if keyword.lower() in user_input:
                     keyword_matches += 1
+                    # Важливі слова (довші ключові слова отримують більшу вагу)
+                    if len(keyword) >= 4:
+                        important_keywords += 1
             
             if keyword_matches > 0:
-                score = keyword_matches / total_keywords
+                # Покращена формула: базовий рахунок + бонус за важливі слова
+                base_score = min(0.8, keyword_matches * 0.4)  # До 0.8 за базові збіги
+                importance_bonus = important_keywords * 0.3   # Бонус за важливі слова
+                score = min(1.0, base_score + importance_bonus)
+                
                 if score > best_score:
                     best_score = score
                     best_command = command
@@ -358,7 +385,7 @@ class CommandMatcher:
             'statistics': 'Показати статистику'
         }
         
-        return descriptions.get(command, 'Невідома команда')
+        return descriptions.get(command, "")
 
     def get_command_examples(self, command: str) -> List[str]:
         """
@@ -434,3 +461,82 @@ class CommandMatcher:
         }
         
         return examples.get(command, [])
+
+    def match_pattern(self, user_input: str, pattern: str) -> float:
+        """
+        Перевіряє відповідність між двома рядками тексту
+        
+        Args:
+            user_input (str): Введений текст користувача
+            pattern (str): Паттерн для порівняння
+            
+        Returns:
+            float: Рівень відповідності (0.0 - 1.0)
+        """
+        if not user_input or not pattern:
+            return 0.0
+        
+        # Нормалізуємо обидва рядки
+        normalized_input = self._normalize_text(user_input)
+        normalized_pattern = self._normalize_text(pattern)
+        
+        # Точне співпадіння
+        if normalized_input == normalized_pattern:
+            return 1.0
+        
+        # Використовуємо difflib для оцінки схожості
+        similarity = difflib.SequenceMatcher(None, normalized_input, normalized_pattern).ratio()
+        
+        # Додаткова оцінка за часткове входження
+        if normalized_input in normalized_pattern or normalized_pattern in normalized_input:
+            similarity = max(similarity, 0.6)
+        
+        # Перевірка на спільні слова
+        input_words = set(normalized_input.split())
+        pattern_words = set(normalized_pattern.split())
+        if input_words and pattern_words:
+            common_words = len(input_words.intersection(pattern_words))
+            word_similarity = common_words / max(len(input_words), len(pattern_words))
+            similarity = max(similarity, word_similarity * 0.8)
+        
+        return similarity
+
+    def get_all_commands(self) -> List[str]:
+        """
+        Повертає список всіх доступних команд
+        
+        Returns:
+            List[str]: Список назв команд
+        """
+        return list(self.commands.keys())
+
+    def _normalize_text(self, text: str) -> str:
+        """
+        Нормалізує текст для кращого розпізнавання
+        
+        Args:
+            text (str): Вихідний текст
+            
+        Returns:
+            str: Нормалізований текст
+        """
+        if not text:
+            return ""
+        
+        # Приводимо до нижнього регістру
+        text = text.lower().strip()
+        
+        # Видаляємо зайві пробіли
+        text = re.sub(r'\s+', ' ', text)
+        
+        # Видаляємо спеціальні символи (окрім основних)
+        text = re.sub(r'[^\w\s\'-]', ' ', text)
+        
+        # Обрізаємо занадто довгий текст, але зберігаємо початок і кінець
+        if len(text) > 500:
+            # Беремо перші 200 символів і останні 100 символів
+            start_part = text[:200].strip()
+            end_part = text[-100:].strip()
+            text = start_part + " " + end_part
+        
+        return text

@@ -4,8 +4,17 @@
 
 from typing import List, Optional, Dict, Any
 from datetime import date
-from ..models.contact import Contact
-from ..storage.file_storage import FileStorage
+import sys
+from pathlib import Path
+
+# Додаємо шлях до батьківської папки для абсолютних імпортів
+current_dir = Path(__file__).parent
+dev_dir = current_dir.parent
+if str(dev_dir) not in sys.path:
+    sys.path.insert(0, str(dev_dir))
+
+from models.contact import Contact
+from storage.file_storage import FileStorage
 
 
 class ContactManager:
@@ -24,7 +33,8 @@ class ContactManager:
             storage (FileStorage): Об'єкт для збереження даних
         """
         self.storage = storage
-        self._contacts: Dict[str, Contact] = {}
+        self._contacts: List[Contact] = []  # Змінюємо на список для тестів
+        self._contacts_by_name: Dict[str, Contact] = {}  # Для швидкого пошуку
         self.load_contacts()
 
     def load_contacts(self) -> None:
@@ -35,44 +45,47 @@ class ContactManager:
                 for contact_data in contacts_data.values():
                     try:
                         contact = Contact.from_dict(contact_data)
-                        self._contacts[contact.name.value.lower()] = contact
+                        name_key = contact.name.value.lower()
+                        if name_key not in self._contacts_by_name:
+                            self._contacts.append(contact)
+                            self._contacts_by_name[name_key] = contact
                     except (ValueError, KeyError) as e:
                         print(f"Помилка завантаження контакту: {e}")
-        except FileNotFoundError:
-            # Файл не існує, починаємо з порожньої колекції
-            self._contacts = {}
         except Exception as e:
             print(f"Помилка завантаження контактів: {e}")
-            self._contacts = {}
+            # Залишаємо порожні списки при помилці - вже ініціалізовані
 
-    def save_contacts(self) -> None:
+    def save_contacts(self) -> bool:
         """Зберігає контакти у файлове сховище"""
         try:
             contacts_data = {
-                name: contact.to_dict() 
-                for name, contact in self._contacts.items()
+                contact.name.value.lower(): contact.to_dict() 
+                for contact in self._contacts
             }
-            self.storage.save_data('contacts', contacts_data)
+            return self.storage.save_data('contacts', contacts_data)
         except Exception as e:
             print(f"Помилка збереження контактів: {e}")
+            return False
 
-    def add_contact(self, contact: Contact) -> None:
+    def add_contact(self, contact: Contact) -> bool:
         """
         Додає новий контакт до колекції
         
         Args:
             contact (Contact): Контакт для додавання
             
-        Raises:
-            ValueError: Якщо контакт з таким ім'ям вже існує
+        Returns:
+            bool: True якщо додано успішно, False якщо контакт вже існує
         """
         name_key = contact.name.value.lower()
         
-        if name_key in self._contacts:
-            raise ValueError(f"Контакт з ім'ям '{contact.name.value}' вже існує")
+        if name_key in self._contacts_by_name:
+            return False  # Тихо ігноруємо дублікати замість exception
         
-        self._contacts[name_key] = contact
+        self._contacts.append(contact)
+        self._contacts_by_name[name_key] = contact
         self.save_contacts()
+        return True
 
     def remove_contact(self, name: str) -> bool:
         """
@@ -86,8 +99,10 @@ class ContactManager:
         """
         name_key = name.lower()
         
-        if name_key in self._contacts:
-            del self._contacts[name_key]
+        if name_key in self._contacts_by_name:
+            contact = self._contacts_by_name[name_key]
+            self._contacts.remove(contact)
+            del self._contacts_by_name[name_key]
             self.save_contacts()
             return True
         return False
@@ -102,7 +117,7 @@ class ContactManager:
         Returns:
             Optional[Contact]: Знайдений контакт або None
         """
-        return self._contacts.get(name.lower())
+        return self._contacts_by_name.get(name.lower())
 
     def search_contacts(self, query: str) -> List[Contact]:
         """
@@ -115,12 +130,12 @@ class ContactManager:
             List[Contact]: Список знайдених контактів
         """
         if not query:
-            return list(self._contacts.values())
+            return self._contacts.copy()
         
         query_lower = query.lower()
         found_contacts = []
         
-        for contact in self._contacts.values():
+        for contact in self._contacts:
             # Пошук в імені
             if query_lower in contact.name.value.lower():
                 found_contacts.append(contact)
@@ -132,16 +147,24 @@ class ContactManager:
                     found_contacts.append(contact)
                     break
             else:
-                # Пошук в emails
+                # Пошук в emails (список)
+                found_in_emails = False
                 for email in contact.emails:
                     if query_lower in email.value.lower():
                         found_contacts.append(contact)
+                        found_in_emails = True
                         break
-                else:
-                    # Пошук в адресі
-                    if (contact.address and 
-                        query_lower in contact.address.value.lower()):
+                
+                if not found_in_emails:
+                    # Пошук в одиночному email (для сумісності з тестами)
+                    if (contact.email and 
+                        query_lower in contact.email.value.lower()):
                         found_contacts.append(contact)
+                    else:
+                        # Пошук в адресі
+                        if (contact.address and 
+                            query_lower in contact.address.value.lower()):
+                            found_contacts.append(contact)
         
         return found_contacts
 
@@ -155,7 +178,7 @@ class ContactManager:
         Returns:
             List[Contact]: Відсортований список контактів
         """
-        contacts = list(self._contacts.values())
+        contacts = self._contacts.copy()
         
         if sort_by == 'name':
             contacts.sort(key=lambda c: c.name.value.lower())
@@ -183,7 +206,7 @@ class ContactManager:
         """
         upcoming_contacts = []
         
-        for contact in self._contacts.values():
+        for contact in self._contacts:
             if contact.birthday:
                 days_to_bd = contact.days_to_birthday()
                 if days_to_bd is not None and days_to_bd <= days_ahead:
@@ -193,6 +216,33 @@ class ContactManager:
         upcoming_contacts.sort(key=lambda c: c.days_to_birthday() or 0)
         
         return upcoming_contacts
+
+    def get_contacts_by_birthday(self, date_str: str) -> List[Contact]:
+        """
+        Знаходить контакти за конкретною датою народження (день.місяць)
+        
+        Args:
+            date_str (str): Дата у форматі "dd.mm"
+            
+        Returns:
+            List[Contact]: Список контактів з таким днем народження
+        """
+        matching_contacts = []
+        
+        try:
+            # Парсимо дату з строки
+            day, month = map(int, date_str.split('.'))
+            
+            for contact in self._contacts:
+                if contact.birthday:
+                    bday_obj = contact.birthday.to_date()
+                    if (bday_obj.day == day and bday_obj.month == month):
+                        matching_contacts.append(contact)
+        except (ValueError, AttributeError):
+            # Неправильний формат дати або проблеми з парсингом
+            pass
+            
+        return matching_contacts
 
     def update_contact(self, name: str, **kwargs) -> Optional[Contact]:
         """
@@ -249,10 +299,10 @@ class ContactManager:
             Dict[str, Any]: Словник зі статистикою
         """
         total_contacts = len(self._contacts)
-        contacts_with_phones = sum(1 for c in self._contacts.values() if c.phones)
-        contacts_with_emails = sum(1 for c in self._contacts.values() if c.emails)
-        contacts_with_birthdays = sum(1 for c in self._contacts.values() if c.birthday)
-        contacts_with_addresses = sum(1 for c in self._contacts.values() if c.address)
+        contacts_with_phones = sum(1 for c in self._contacts if c.phones)
+        contacts_with_emails = sum(1 for c in self._contacts if c.emails)
+        contacts_with_birthdays = sum(1 for c in self._contacts if c.birthday)
+        contacts_with_addresses = sum(1 for c in self._contacts if c.address)
         
         upcoming_birthdays = len(self.get_upcoming_birthdays())
         
@@ -271,8 +321,8 @@ class ContactManager:
 
     def __iter__(self):
         """Дозволяє ітерацію по контактах"""
-        return iter(self._contacts.values())
+        return iter(self._contacts)
 
     def __contains__(self, name: str) -> bool:
         """Перевіряє, чи існує контакт з вказаним ім'ям"""
-        return name.lower() in self._contacts
+        return name.lower() in self._contacts_by_name

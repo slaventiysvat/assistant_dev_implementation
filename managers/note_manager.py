@@ -4,8 +4,13 @@
 
 from typing import List, Optional, Dict, Any, Set
 from datetime import datetime
-from ..models.note import Note
-from ..storage.file_storage import FileStorage
+
+try:
+    from models.note import Note
+    from storage.file_storage import FileStorage
+except ImportError:
+    from dev_implementation.models.note import Note
+    from dev_implementation.storage.file_storage import FileStorage
 
 
 class NoteManager:
@@ -29,6 +34,9 @@ class NoteManager:
 
     def load_notes(self) -> None:
         """Завантажує нотатки з файлового сховища"""
+        # Очищаємо поточні нотатки перед завантаженням
+        self._notes = []
+        
         try:
             notes_data = self.storage.load_data('notes')
             if isinstance(notes_data, list):
@@ -38,30 +46,41 @@ class NoteManager:
                         self._notes.append(note)
                     except (ValueError, KeyError) as e:
                         print(f"Помилка завантаження нотатки: {e}")
-        except FileNotFoundError:
-            # Файл не існує, починаємо з порожньої колекції
-            self._notes = []
         except Exception as e:
             print(f"Помилка завантаження нотаток: {e}")
+            # Зберігаємо порожній список при помилці
             self._notes = []
 
-    def save_notes(self) -> None:
-        """Зберігає нотатки у файлове сховище"""
+    def save_notes(self) -> bool:
+        """
+        Зберігає нотатки у файлове сховище
+        
+        Returns:
+            bool: True, якщо збереження успішне
+        """
         try:
             notes_data = [note.to_dict() for note in self._notes]
-            self.storage.save_data('notes', notes_data)
+            return self.storage.save_data('notes', notes_data)
         except Exception as e:
             print(f"Помилка збереження нотаток: {e}")
+            return False
 
-    def add_note(self, note: Note) -> None:
+    def add_note(self, note: Note) -> bool:
         """
         Додає нову нотатку до колекції
         
         Args:
             note (Note): Нотатка для додавання
+            
+        Returns:
+            bool: True, якщо нотатка була додана успішно
         """
+        # Перевіряємо дублікати за точним заголовком
+        if any(existing_note.title == note.title for existing_note in self._notes):
+            return False
+            
         self._notes.append(note)
-        self.save_notes()
+        return self.save_notes()
 
     def create_note(self, title: str, content: str = "", tags: Optional[List[str]] = None) -> Note:
         """
@@ -115,6 +134,34 @@ class NoteManager:
                 return True
         return False
 
+    def edit_note(self, index: int, title: Optional[str] = None, 
+                  content: Optional[str] = None, tags: Optional[List[str]] = None) -> bool:
+        """
+        Редагує нотатку за індексом
+        
+        Args:
+            index (int): Індекс нотатки (починається з 1)
+            title (Optional[str]): Новий заголовок (якщо не None)
+            content (Optional[str]): Новий контент (якщо не None)
+            tags (Optional[List[str]]): Нові теги (якщо не None)
+            
+        Returns:
+            bool: True, якщо нотатка була відредагована успішно
+        """
+        note = self.get_note(index)
+        if note is None:
+            return False
+        
+        # Оновлюємо тільки ті поля, які передані
+        if title is not None:
+            note.title = title
+        if content is not None:
+            note.update_content(content)
+        if tags is not None:
+            note.tags = tags
+        
+        return self.save_notes()
+
     def get_note(self, index: int) -> Optional[Note]:
         """
         Повертає нотатку за індексом
@@ -128,6 +175,18 @@ class NoteManager:
         if 1 <= index <= len(self._notes):
             return self._notes[index - 1]
         return None
+
+    def get_note_by_index(self, index: int) -> Optional[Note]:
+        """
+        Повертає нотатку за індексом (псевдонім для get_note)
+        
+        Args:
+            index (int): Індекс нотатки (починається з 1)
+            
+        Returns:
+            Optional[Note]: Нотатка або None, якщо індекс неправильний
+        """
+        return self.get_note(index)
 
     def find_notes_by_title(self, title: str) -> List[tuple[int, Note]]:
         """
@@ -150,7 +209,7 @@ class NoteManager:
 
     def search_notes(self, query: str, case_sensitive: bool = False) -> List[tuple[int, Note]]:
         """
-        Шукає нотатки за змістом або заголовком
+        Шукає нотатки за змістом, заголовком або тегами
         
         Args:
             query (str): Пошуковий запит
@@ -162,8 +221,18 @@ class NoteManager:
         found_notes = []
         
         for i, note in enumerate(self._notes):
+            # Шукаємо в змісті та заголовку
             if note.search_in_content(query, case_sensitive):
                 found_notes.append((i + 1, note))
+                continue
+            
+            # Шукаємо в тегах
+            query_check = query if case_sensitive else query.lower()
+            for tag in note.tags:
+                tag_check = tag if case_sensitive else tag.lower()
+                if query_check in tag_check:
+                    found_notes.append((i + 1, note))
+                    break
         
         return found_notes
 
@@ -207,6 +276,19 @@ class NoteManager:
                     found_notes.append((i + 1, note))
         
         return found_notes
+
+    def get_notes_by_tags(self, tags: List[str], match_all: bool = False) -> List[tuple[int, Note]]:
+        """
+        Псевдонім для find_notes_by_tags() - для сумісності з тестами
+        
+        Args:
+            tags (List[str]): Список тегів для пошуку
+            match_all (bool): Чи повинні збігатися всі теги (True) або хоча б один (False)
+            
+        Returns:
+            List[tuple[int, Note]]: Список кортежів (індекс, нотатка)
+        """
+        return self.find_notes_by_tags(tags, match_all)
 
     def get_all_notes(self, sort_by: str = 'created') -> List[tuple[int, Note]]:
         """
@@ -362,7 +444,8 @@ class NoteManager:
             'total_words': total_words,
             'avg_words_per_note': round(avg_words_per_note, 1),
             'notes_with_tags': notes_with_tags,
-            'avg_tags_per_note': round(avg_tags_per_note, 1)
+            'avg_tags_per_note': round(avg_tags_per_note, 1),
+            'average_tags_per_note': round(avg_tags_per_note, 1)  # Альтернативне ім'я для тестів
         }
 
     def __len__(self) -> int:

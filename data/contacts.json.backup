@@ -1,0 +1,26 @@
+{
+  "демо користувач": {
+    "name": "Демо Користувач",
+    "phones": [
+      "+380501234567"
+    ],
+    "emails": [
+      "demo@example.com"
+    ],
+    "email": null,
+    "birthday": null,
+    "address": null
+  },
+  "vasia obrigan": {
+    "name": "Vasia Obrigan",
+    "phones": [
+      "+380667894520"
+    ],
+    "emails": [
+      "vasiaobrigan@gmail.com"
+    ],
+    "email": null,
+    "birthday": null,
+    "address": null
+  }
+}
