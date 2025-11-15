@@ -30,5 +30,29 @@
     "email": null,
     "birthday": null,
     "address": null
+  },
+  "vasiya obramovich": {
+    "name": "Vasiya Obramovich",
+    "phones": [
+      "+380975837254"
+    ],
+    "emails": [
+      "vasiya@gmail.com"
+    ],
+    "email": null,
+    "birthday": null,
+    "address": null
+  },
+  "anna kovboy": {
+    "name": "Anna Kovboy",
+    "phones": [
+      "+380978473645"
+    ],
+    "emails": [
+      "anna@gmail.com"
+    ],
+    "email": null,
+    "birthday": null,
+    "address": null
   }
 }
