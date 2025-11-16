@@ -1,0 +1,25 @@
+# Включати додаткові файли в пакет
+include README.md
+include LAUNCH_GUIDE.md
+include requirements.txt
+include requirements-dev.txt
+include LICENSE
+include run.bat
+include run.sh
+include *.py
+
+# Включати файли конфігурації
+include pytest.ini
+include pyproject.toml
+
+# Включати структуру тестів
+recursive-include tests *.py
+recursive-include tests/data *.json
+
+# Виключати файли які не потрібні в пакеті
+exclude .git*
+exclude .pytest_cache
+exclude __pycache__
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * .DS_Store
