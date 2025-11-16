@@ -1,21 +1,20 @@
 [
   {
-    "title": "Демо нотатка",
-    "content": "Зміст нотатки: Демо нотатка",
+    "title": "To do",
+    "content": "cucumber,potato,salat,milk",
     "tags": [
-      "демо",
-      "тест"
+      "groceries"
     ],
-    "created_at": "2025-11-14T00:31:04.811819",
-    "updated_at": "2025-11-14T00:31:04.812816"
+    "created_at": "2025-11-16T18:55:47.007957",
+    "updated_at": "2025-11-16T18:56:19.043375"
   },
   {
-    "title": "List to do",
-    "content": "Зміст нотатки: List to do",
+    "title": "To call mom",
+    "content": "to speak about uncle's Bday",
     "tags": [
-      "todoshechka"
+      "mom"
     ],
-    "created_at": "2025-11-15T11:37:47.691999",
-    "updated_at": "2025-11-15T11:37:47.692027"
+    "created_at": "2025-11-16T18:56:54.661194",
+    "updated_at": "2025-11-16T18:58:13.435554"
   }
 ]
