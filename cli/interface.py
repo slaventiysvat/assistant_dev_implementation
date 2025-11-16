@@ -187,6 +187,22 @@ class PersonalAssistantCLI:
                 except ValueError as e:
                     return f"Помилка email: {e}"
             
+            # Додаємо день народження
+            birthday = input("Введіть день народження (DD.MM.YYYY або Enter для пропуску): ").strip()
+            if birthday:
+                try:
+                    contact.set_birthday(birthday)
+                except ValueError as e:
+                    return f"Помилка дня народження: {e}"
+            
+            # Додаємо адресу
+            address = input("Введіть адресу (або Enter для пропуску): ").strip()
+            if address:
+                try:
+                    contact.set_address(address)
+                except ValueError as e:
+                    return f"Помилка адреси: {e}"
+            
             # Зберігаємо контакт
             self.contact_manager.add_contact(contact)
             return f"Контакт '{name}' успішно додано!"
@@ -263,9 +279,74 @@ class PersonalAssistantCLI:
             if not contact:
                 return f"Контакт з ім'ям '{name}' не знайдено"
             
-            # Тут можна додати більше логіки редагування
-            # Наразі просто повідомляємо про успіх
-            return f"Контакт '{name}' готовий до редагування"
+            result_messages = []
+            result_messages.append(f"Редагування контакту '{name}':")
+            
+            # Редагування телефону
+            edit_phone = input("Редагувати телефон? (y/n): ").strip().lower()
+            if edit_phone == 'y':
+                phone = input("Введіть новий телефон (або Enter для видалення): ").strip()
+                if phone:
+                    try:
+                        # Очищуємо старі телефони та додаємо новий
+                        contact.phones.clear()
+                        contact.add_phone(phone)
+                        result_messages.append(f"✅ Телефон оновлено: {phone}")
+                    except ValueError as e:
+                        result_messages.append(f"❌ Помилка телефону: {e}")
+                else:
+                    contact.phones.clear()
+                    result_messages.append("✅ Телефон видалено")
+            
+            # Редагування email
+            edit_email = input("Редагувати email? (y/n): ").strip().lower()
+            if edit_email == 'y':
+                email = input("Введіть новий email (або Enter для видалення): ").strip()
+                if email:
+                    try:
+                        # Очищуємо старі email та додаємо новий
+                        contact.emails.clear()
+                        contact.add_email(email)
+                        result_messages.append(f"✅ Email оновлено: {email}")
+                    except ValueError as e:
+                        result_messages.append(f"❌ Помилка email: {e}")
+                else:
+                    contact.emails.clear()
+                    result_messages.append("✅ Email видалено")
+            
+            # Редагування дня народження
+            edit_birthday = input("Редагувати день народження? (y/n): ").strip().lower()
+            if edit_birthday == 'y':
+                birthday = input("Введіть день народження (DD.MM.YYYY або Enter для видалення): ").strip()
+                if birthday:
+                    try:
+                        contact.set_birthday(birthday)
+                        result_messages.append(f"✅ День народження оновлено: {birthday}")
+                    except ValueError as e:
+                        result_messages.append(f"❌ Помилка дня народження: {e}")
+                else:
+                    contact.remove_birthday()
+                    result_messages.append("✅ День народження видалено")
+            
+            # Редагування адреси
+            edit_address = input("Редагувати адресу? (y/n): ").strip().lower()
+            if edit_address == 'y':
+                address = input("Введіть нову адресу (або Enter для видалення): ").strip()
+                if address:
+                    try:
+                        contact.set_address(address)
+                        result_messages.append(f"✅ Адресу оновлено: {address}")
+                    except ValueError as e:
+                        result_messages.append(f"❌ Помилка адреси: {e}")
+                else:
+                    contact.remove_address()
+                    result_messages.append("✅ Адресу видалено")
+            
+            # Зберігаємо зміни
+            self.contact_manager.save_data()
+            result_messages.append(f"🎉 Контакт '{name}' успішно оновлено!")
+            
+            return "\n".join(result_messages)
             
         except Exception as e:
             return f"Помилка редагування: {e}"

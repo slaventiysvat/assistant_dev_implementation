@@ -1,26 +1,26 @@
 {
-  "демо користувач": {
-    "name": "Демо Користувач",
+  "тестовий користувач": {
+    "name": "Тестовий Користувач",
     "phones": [
       "+380501234567"
     ],
     "emails": [
-      "demo@example.com"
+      "test@example.com"
     ],
     "email": null,
-    "birthday": null,
-    "address": null
+    "birthday": "20.12.1985",
+    "address": "вул. Тестова, 1"
   },
-  "vasia obrigan": {
-    "name": "Vasia Obrigan",
+  "контакт без дн": {
+    "name": "Контакт Без ДН",
     "phones": [
-      "+380667894520"
+      "+380509876543"
     ],
     "emails": [
-      "vasiaobrigan@gmail.com"
+      "nobday@test.com"
     ],
     "email": null,
-    "birthday": null,
+    "birthday": "01.01.2000",
     "address": null
   }
 }
