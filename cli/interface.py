@@ -108,6 +108,7 @@ class PersonalAssistantCLI:
   • show contacts / показати контакти - Показати всі контакти  
   • edit contact / редагувати контакт - Редагувати контакт
   • delete contact / видалити контакт - Видалити контакт
+  • birthdays / дні народження - Показати найближчі дні народження
 
 Управління нотатками:
   • add note / додати нотатку - Створити нотатку
@@ -145,6 +146,8 @@ class PersonalAssistantCLI:
                 return self._edit_note_command()
             elif command == 'delete_note':
                 return self._delete_note_command()
+            elif command == 'birthdays':
+                return self._birthdays_command()
             elif command == 'help':
                 return self._get_help_text()
             else:
@@ -390,6 +393,50 @@ class PersonalAssistantCLI:
                 
         except Exception as e:
             return f"Помилка видалення: {e}"
+
+    def _birthdays_command(self) -> str:
+        """Команда показу найближчих днів народження"""
+        try:
+            # Запитуємо кількість днів наперед
+            days_input = input("На скільки днів наперед шукати? (за замовчуванням 7): ").strip()
+            
+            try:
+                days_ahead = int(days_input) if days_input else 7
+                if days_ahead < 1:
+                    return "Кількість днів має бути більше 0"
+            except ValueError:
+                days_ahead = 7
+            
+            upcoming_birthdays = self.contact_manager.get_upcoming_birthdays(days_ahead)
+            
+            if not upcoming_birthdays:
+                return f"На найближчі {days_ahead} днів днів народження немає"
+            
+            result = f"Дні народження на найближчі {days_ahead} днів:\n\n"
+            
+            for contact in upcoming_birthdays:
+                days_to_bd = contact.days_to_birthday()
+                if days_to_bd == 0:
+                    status = "СЬОГОДНІ!"
+                elif days_to_bd == 1:
+                    status = "Завтра"
+                else:
+                    status = f"Через {days_to_bd} днів"
+                
+                result += f"📅 {contact.name.value}\n"
+                result += f"   День народження: {contact.birthday.value}\n"
+                result += f"   {status}\n"
+                
+                # Показуємо контактну інформацію
+                if contact.phones:
+                    phones = ", ".join([phone.value for phone in contact.phones])
+                    result += f"   📞 {phones}\n"
+                result += "\n"
+                
+            return result.strip()
+                
+        except Exception as e:
+            return f"Помилка отримання днів народження: {e}"
 
     def run(self) -> None:
         """Головний цикл програми"""
