@@ -54,5 +54,53 @@
     "email": null,
     "birthday": null,
     "address": null
+  },
+  "олексій коваленко": {
+    "name": "Олексій Коваленко",
+    "phones": [
+      "+380671234567"
+    ],
+    "emails": [
+      "oleksiy.kovalenko@gmail.com"
+    ],
+    "email": null,
+    "birthday": "18.11.1990",
+    "address": "вул. Хрещатик, 15, Київ"
+  },
+  "марія петренко": {
+    "name": "Марія Петренко",
+    "phones": [
+      "+380502345678"
+    ],
+    "emails": [
+      "maria.petrenko@ukr.net"
+    ],
+    "email": null,
+    "birthday": "20.11.1995",
+    "address": "пр. Шевченка, 25, Львів"
+  },
+  "іван сидорович": {
+    "name": "Іван Сидорович",
+    "phones": [
+      "+380633456789"
+    ],
+    "emails": [
+      "ivan.sydorovych@outlook.com"
+    ],
+    "email": null,
+    "birthday": "22.11.1988",
+    "address": "вул. Соборна, 8, Дніпро"
+  },
+  "анна мельник": {
+    "name": "Анна Мельник",
+    "phones": [
+      "+380504567890"
+    ],
+    "emails": [
+      "anna.melnyk@yahoo.com"
+    ],
+    "email": null,
+    "birthday": "25.11.2000",
+    "address": "вул. Миру, 12, Одеса"
   }
 }
