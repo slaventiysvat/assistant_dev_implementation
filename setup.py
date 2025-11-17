@@ -60,11 +60,12 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "personal-assistant=main:main",
+            "personal-assistant=personal_assistant.entry_point:main",
         ],
     },
     include_package_data=True,
     package_data={
+        "personal_assistant": ["*.json", "*.md", "*.txt", "data/*.json"],
         "": ["*.json", "*.md", "*.txt"],
     },
     zip_safe=False,

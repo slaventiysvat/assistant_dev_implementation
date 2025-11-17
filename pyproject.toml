@@ -36,7 +36,7 @@ dev = [
 ]
 
 [project.scripts]
-personal-assistant = "main:main"
+personal-assistant = "personal_assistant.entry_point:main"
 
 [project.urls]
 Homepage = "https://github.com/slaventiysvat/assistant_dev_implementation"

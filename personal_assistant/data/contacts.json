@@ -1,0 +1,26 @@
+{
+  "олексій коваленко": {
+    "name": "Олексій Коваленко",
+    "phones": [
+      "+380671234567"
+    ],
+    "emails": [
+      "+380671234567@gmail.com"
+    ],
+    "email": null,
+    "birthday": "20.11.1990",
+    "address": "Kharkiv"
+  },
+  "марія петренко": {
+    "name": "Марія Петренко",
+    "phones": [
+      "+380998877666"
+    ],
+    "emails": [
+      "0998877666@gmail.com"
+    ],
+    "email": null,
+    "birthday": "21.11.2000",
+    "address": "Kyiv city"
+  }
+}
